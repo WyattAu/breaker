@@ -1,0 +1,28 @@
+[package]
+name = "breaker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Async circuit breaker for Rust — state machine with configurable thresholds, metrics, and Tower layer integration"
+readme = "README.md"
+repository = "https://github.com/WyattAu/breaker"
+
+[dependencies]
+tokio = { version = "1", features = ["time", "sync"] }
+parking_lot = "0.12"
+thiserror = "2"
+tracing = "0.1"
+
+tower = { version = "0.5", optional = true }
+tower-layer = { version = "0.3", optional = true }
+http = { version = "1", optional = true }
+axum = { version = "0.8", optional = true }
+
+[features]
+default = ["std"]
+std = []
+tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
