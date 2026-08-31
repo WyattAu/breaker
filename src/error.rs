@@ -8,4 +8,8 @@ pub enum CircuitBreakerError {
     /// The wrapped operation failed (mapped from the inner error).
     #[error("circuit breaker: operation timed out or failed")]
     Timeout,
+
+    /// The inner operation returned an error.
+    #[error("circuit breaker: inner error: {0}")]
+    Inner(String),
 }
