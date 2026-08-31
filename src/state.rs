@@ -5,8 +5,11 @@ use crate::config::CircuitBreakerConfig;
 /// The three states of the circuit breaker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum State {
+    /// Circuit is closed — requests are allowed.
     Closed,
+    /// Circuit is open — requests are rejected.
     Open,
+    /// Circuit is half-open — probing for recovery.
     HalfOpen,
 }
 
@@ -48,38 +51,60 @@ impl StateMachine {
         self.current
     }
 
-    pub fn record_success(&mut self, config: &CircuitBreakerConfig) {
+    pub fn record_success(&mut self, config: &CircuitBreakerConfig) -> Option<(State, State)> {
         self.total_successes += 1;
+        self.maybe_transition_to_half_open(config);
+        let prev = self.current;
 
         match self.current {
             State::Closed => {
                 self.failure_count = 0;
+                None
             }
             State::HalfOpen => {
                 self.success_count += 1;
-                if self.success_count >= config.half_open_max_calls {
+                if self.success_count >= config.success_threshold {
                     self.transition(State::Closed, config);
+                    Some((prev, State::Closed))
+                } else {
+                    None
                 }
             }
-            State::Open => {}
+            State::Open => None,
         }
     }
 
-    pub fn record_failure(&mut self, config: &CircuitBreakerConfig) {
+    pub fn record_failure(&mut self, config: &CircuitBreakerConfig) -> Option<(State, State)> {
         self.total_failures += 1;
         self.last_failure = Some(Instant::now());
+        self.maybe_transition_to_half_open(config);
+        let prev = self.current;
 
         match self.current {
             State::Closed => {
                 self.failure_count += 1;
                 if self.failure_count >= config.failure_rate_threshold {
                     self.transition(State::Open, config);
+                    Some((prev, State::Open))
+                } else {
+                    None
                 }
             }
             State::HalfOpen => {
                 self.transition(State::Open, config);
+                Some((prev, State::Open))
             }
-            State::Open => {}
+            State::Open => None,
+        }
+    }
+
+    fn maybe_transition_to_half_open(&mut self, config: &CircuitBreakerConfig) {
+        if self.current == State::Open {
+            if let Some(open_since) = self.open_since {
+                if open_since.elapsed() >= config.wait_duration {
+                    self.transition(State::HalfOpen, config);
+                }
+            }
         }
     }
 

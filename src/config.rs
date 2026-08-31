@@ -11,6 +11,8 @@ pub struct CircuitBreakerConfig {
     pub wait_duration: Duration,
     /// Number of successful calls in HalfOpen needed to close the circuit.
     pub half_open_max_calls: u32,
+    /// Number of successes in HalfOpen needed to close the circuit.
+    pub success_threshold: u32,
 }
 
 impl CircuitBreakerConfig {
@@ -44,6 +46,7 @@ impl CircuitBreakerConfig {
             .build()
     }
 
+    /// Create a new builder with default values.
     pub fn builder() -> CircuitBreakerConfigBuilder {
         CircuitBreakerConfigBuilder::default()
     }
@@ -55,6 +58,7 @@ pub struct CircuitBreakerConfigBuilder {
     sliding_window_size: Option<u32>,
     wait_duration: Option<Duration>,
     half_open_max_calls: Option<u32>,
+    success_threshold: Option<u32>,
 }
 
 impl CircuitBreakerConfigBuilder {
@@ -78,13 +82,20 @@ impl CircuitBreakerConfigBuilder {
         self
     }
 
+    pub fn success_threshold(mut self, v: u32) -> Self {
+        self.success_threshold = Some(v);
+        self
+    }
+
     pub fn build(self) -> CircuitBreakerConfig {
         let wait = self.wait_duration.unwrap_or(Duration::from_secs(30));
+        let half_open_max = self.half_open_max_calls.unwrap_or(3);
         CircuitBreakerConfig {
             failure_rate_threshold: self.failure_rate_threshold.unwrap_or(5),
             sliding_window_size: self.sliding_window_size.unwrap_or(10),
-            half_open_max_calls: self.half_open_max_calls.unwrap_or(3),
+            half_open_max_calls: half_open_max,
             wait_duration: wait,
+            success_threshold: self.success_threshold.unwrap_or(half_open_max),
         }
     }
 }
