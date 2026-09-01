@@ -7,6 +7,8 @@ license = "MIT OR Apache-2.0"
 description = "Async circuit breaker for Rust — state machine with configurable thresholds, metrics, and Tower layer integration"
 readme = "README.md"
 repository = "https://github.com/WyattAu/breaker"
+keywords = ["circuit-breaker", "resilience", "fault-tolerance"]
+categories = ["rust-patterns"]
 
 [dependencies]
 tokio = { version = "1", features = ["time", "sync"] }
@@ -26,3 +28,4 @@ tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+proptest = "1"
