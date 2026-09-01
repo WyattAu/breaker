@@ -593,9 +593,11 @@ mod tests {
         let count = Arc::new(AtomicUsize::new(0));
         let count_clone = count.clone();
 
-        let cb = CircuitBreaker::builder(CircuitBreakerConfig::builder()
-            .failure_rate_threshold(1)
-            .build())
+        let cb = CircuitBreaker::builder(
+            CircuitBreakerConfig::builder()
+                .failure_rate_threshold(1)
+                .build(),
+        )
         .on_state_change(move |_prev, _next| {
             count_clone.fetch_add(1, Ordering::SeqCst);
         })
@@ -615,9 +617,11 @@ mod tests {
         let transitions = Arc::new(std::sync::Mutex::new(Vec::new()));
         let t_clone = transitions.clone();
 
-        let cb = CircuitBreaker::builder(CircuitBreakerConfig::builder()
-            .failure_rate_threshold(1)
-            .build())
+        let cb = CircuitBreaker::builder(
+            CircuitBreakerConfig::builder()
+                .failure_rate_threshold(1)
+                .build(),
+        )
         .on_state_change(move |prev, next| {
             t_clone.lock().unwrap().push((prev, next));
         })
@@ -631,9 +635,7 @@ mod tests {
 
     #[test]
     fn success_threshold_config() {
-        let c = CircuitBreakerConfig::builder()
-            .success_threshold(5)
-            .build();
+        let c = CircuitBreakerConfig::builder().success_threshold(5).build();
         assert_eq!(c.success_threshold, 5);
     }
 
