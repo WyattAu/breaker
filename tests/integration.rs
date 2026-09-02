@@ -199,8 +199,8 @@ fn builder_default_name() {
 
 #[test]
 fn builder_with_state_change_callback() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     let count = Arc::new(AtomicUsize::new(0));
     let c = count.clone();
@@ -268,16 +268,16 @@ fn error_display_all_variants() {
 
 #[test]
 fn success_threshold_defaults_to_half_open_max() {
-    let c = CircuitBreakerConfig::builder().half_open_max_calls(9).build();
+    let c = CircuitBreakerConfig::builder()
+        .half_open_max_calls(9)
+        .build();
     assert_eq!(c.success_threshold, 9);
 }
 
 #[tokio::test]
 async fn call_returns_inner_error_value() {
     let cb = CircuitBreaker::new(CircuitBreakerConfig::standard());
-    let result = cb
-        .call(|| async { Err::<(), _>("custom error msg") })
-        .await;
+    let result = cb.call(|| async { Err::<(), _>("custom error msg") }).await;
     match result.unwrap_err() {
         CircuitBreakerError::Inner(msg) => assert_eq!(msg, "custom error msg"),
         other => panic!("expected Inner, got {:?}", other),
