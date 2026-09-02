@@ -118,6 +118,8 @@ impl CircuitBreaker {
             let mut state = self.inner.state.write();
             transition = state.record_success(&self.inner.config);
         }
+        #[cfg(feature = "metrics")]
+        ::metrics::counter!("circuit_breaker_successes_total").increment(1);
         if let Some((prev, next)) = transition {
             self.fire_callback(prev, next);
         }
@@ -132,12 +134,19 @@ impl CircuitBreaker {
             let mut state = self.inner.state.write();
             transition = state.record_failure(&self.inner.config);
         }
+        #[cfg(feature = "metrics")]
+        ::metrics::counter!("circuit_breaker_failures_total").increment(1);
         if let Some((prev, next)) = transition {
             self.fire_callback(prev, next);
         }
     }
 
     fn fire_callback(&self, prev: State, next: State) {
+        #[cfg(feature = "metrics")]
+        {
+            let transition = format!("{prev:?}->{next:?}");
+            ::metrics::counter!("circuit_breaker_transitions_total", "transition" => transition).increment(1);
+        }
         if let Some(ref cb) = self.inner.state_change_callback {
             cb(prev, next);
         }
@@ -166,6 +175,8 @@ impl CircuitBreaker {
                     let mut state = self.inner.state.write();
                     transition = state.record_success(&self.inner.config);
                 }
+                #[cfg(feature = "metrics")]
+                ::metrics::counter!("circuit_breaker_successes_total").increment(1);
                 if let Some((prev, next)) = transition {
                     self.fire_callback(prev, next);
                 }
@@ -176,6 +187,12 @@ impl CircuitBreaker {
                 {
                     let mut state = self.inner.state.write();
                     transition = state.record_failure(&self.inner.config);
+                }
+                #[cfg(feature = "metrics")]
+                {
+                    ::metrics::counter!("circuit_breaker_failures_total").increment(1);
+                    let m = self.inner.state.read();
+                    ::metrics::histogram!("circuit_breaker_failure_rate").record(m.failure_rate());
                 }
                 if let Some((prev, next)) = transition {
                     self.fire_callback(prev, next);
@@ -201,6 +218,8 @@ impl CircuitBreaker {
     pub fn trip(&self) {
         let prev = self.state();
         self.inner.state.write().force_open();
+        #[cfg(feature = "metrics")]
+        ::metrics::counter!("circuit_breaker_trips_total").increment(1);
         self.fire_callback(prev, State::Open);
     }
 

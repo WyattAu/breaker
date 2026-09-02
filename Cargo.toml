@@ -15,6 +15,7 @@ tokio = { version = "1", features = ["time", "sync"] }
 parking_lot = "0.12"
 thiserror = "2"
 tracing = "0.1"
+metrics = { version = "0.24", optional = true }
 
 tower = { version = "0.5", optional = true }
 tower-layer = { version = "0.3", optional = true }
@@ -24,6 +25,7 @@ axum = { version = "0.8", optional = true }
 [features]
 default = ["std"]
 std = []
+metrics = ["dep:metrics"]
 tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
 
 [dev-dependencies]
