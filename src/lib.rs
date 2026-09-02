@@ -146,6 +146,12 @@ impl CircuitBreaker {
         {
             let transition = format!("{prev:?}->{next:?}");
             ::metrics::counter!("circuit_breaker_transitions_total", "transition" => transition).increment(1);
+            let state_val = match next {
+                State::Closed => 0.0,
+                State::Open => 1.0,
+                State::HalfOpen => 2.0,
+            };
+            ::metrics::gauge!("circuit_breaker_state").set(state_val);
         }
         if let Some(ref cb) = self.inner.state_change_callback {
             cb(prev, next);
@@ -193,6 +199,7 @@ impl CircuitBreaker {
                     ::metrics::counter!("circuit_breaker_failures_total").increment(1);
                     let m = self.inner.state.read();
                     ::metrics::histogram!("circuit_breaker_failure_rate").record(m.failure_rate());
+                    ::metrics::histogram!("circuit_breaker_failure_count").record(m.failure_count() as f64);
                 }
                 if let Some((prev, next)) = transition {
                     self.fire_callback(prev, next);

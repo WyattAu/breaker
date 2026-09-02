@@ -149,4 +149,8 @@ impl StateMachine {
     pub fn transitions(&self) -> u64 {
         self.transitions
     }
+
+    pub fn failure_count(&self) -> u32 {
+        self.failure_count
+    }
 }
