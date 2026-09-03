@@ -9,7 +9,8 @@ pub enum CircuitBreakerError {
     #[error("circuit breaker: operation timed out or failed")]
     Timeout,
 
-    /// The inner operation returned an error.
+    /// The inner operation returned an error. `Cow` avoids an allocation
+    /// when the error is a static string (e.g. `"boom"` in tests).
     #[error("circuit breaker: inner error: {0}")]
-    Inner(String),
+    Inner(std::borrow::Cow<'static, str>),
 }

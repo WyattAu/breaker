@@ -63,7 +63,7 @@ pub struct CircuitBreaker {
 }
 
 struct Inner {
-    name: String,
+    name: std::sync::Arc<str>,
     config: CircuitBreakerConfig,
     state: RwLock<StateMachine>,
     state_change_callback: Option<Arc<dyn Fn(State, State) + Send + Sync>>,
@@ -78,7 +78,7 @@ impl CircuitBreaker {
     /// Create a new [`CircuitBreakerBuilder`].
     pub fn builder(config: CircuitBreakerConfig) -> CircuitBreakerBuilder {
         CircuitBreakerBuilder {
-            name: String::from("default"),
+            name: std::sync::Arc::from("default"),
             config,
             state_change_callback: None,
         }
@@ -145,7 +145,8 @@ impl CircuitBreaker {
         #[cfg(feature = "metrics")]
         {
             let transition = format!("{prev:?}->{next:?}");
-            ::metrics::counter!("circuit_breaker_transitions_total", "transition" => transition).increment(1);
+            ::metrics::counter!("circuit_breaker_transitions_total", "transition" => transition)
+                .increment(1);
             let state_val = match next {
                 State::Closed => 0.0,
                 State::Open => 1.0,
@@ -199,12 +200,13 @@ impl CircuitBreaker {
                     ::metrics::counter!("circuit_breaker_failures_total").increment(1);
                     let m = self.inner.state.read();
                     ::metrics::histogram!("circuit_breaker_failure_rate").record(m.failure_rate());
-                    ::metrics::histogram!("circuit_breaker_failure_count").record(m.failure_count() as f64);
+                    ::metrics::histogram!("circuit_breaker_failure_count")
+                        .record(m.failure_count() as f64);
                 }
                 if let Some((prev, next)) = transition {
                     self.fire_callback(prev, next);
                 }
-                Err(CircuitBreakerError::Inner(err.to_string()))
+                Err(CircuitBreakerError::Inner(err.to_string().into()))
             }
         }
     }
@@ -240,14 +242,16 @@ impl CircuitBreaker {
 
 /// Builder for [`CircuitBreaker`].
 pub struct CircuitBreakerBuilder {
-    name: String,
+    name: std::sync::Arc<str>,
     config: CircuitBreakerConfig,
     state_change_callback: Option<Arc<dyn Fn(State, State) + Send + Sync>>,
 }
 
 impl CircuitBreakerBuilder {
     /// Set the name of the circuit breaker.
-    pub fn name(mut self, name: impl Into<String>) -> Self {
+    /// Accepts `String`, `&str`, or `Arc<str>` — static names are zero-copy
+    /// when passed as `&'static str` via `Cow` or `Arc`.
+    pub fn name(mut self, name: impl Into<std::sync::Arc<str>>) -> Self {
         self.name = name.into();
         self
     }
