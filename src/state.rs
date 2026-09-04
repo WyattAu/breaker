@@ -150,6 +150,9 @@ impl StateMachine {
         self.transitions
     }
 
+    /// Consecutive failures recorded in the current `Closed` episode.
+    /// Consumed by the `metrics` feature's failure-count histogram.
+    #[cfg_attr(not(feature = "metrics"), allow(dead_code))]
     pub fn failure_count(&self) -> u32 {
         self.failure_count
     }

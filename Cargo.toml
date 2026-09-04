@@ -31,3 +31,11 @@ tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 proptest = "1"
+
+# Model-checking tests (see tests/loom.rs). Activated only with
+# RUSTFLAGS="--cfg loom"; the lib swaps parking_lot::RwLock for loom's.
+[target.'cfg(loom)'.dependencies]
+loom = { version = "0.7", features = ["futures"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }

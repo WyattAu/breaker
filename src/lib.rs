@@ -39,6 +39,7 @@
 
 mod config;
 mod error;
+mod lock;
 mod metrics;
 mod state;
 
@@ -50,7 +51,10 @@ pub use state::State;
 use std::future::Future;
 use std::sync::Arc;
 
-use parking_lot::RwLock;
+// Under `cfg(loom)` the state lock is swapped for loom's RwLock so the
+// record_failure/record_success state machine can be model-checked
+// (see tests/loom.rs and src/lock.rs).
+use lock::RwLock;
 use state::StateMachine;
 
 /// An async circuit breaker.
@@ -642,8 +646,6 @@ mod tests {
 
     #[test]
     fn on_state_change_records_transition() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
         let transitions = Arc::new(std::sync::Mutex::new(Vec::new()));
         let t_clone = transitions.clone();
 

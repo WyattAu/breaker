@@ -87,3 +87,19 @@ let app = Router::new()
 
 Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE)
 at your option.
+
+## Concurrency testing
+
+The state machine is model-checked with [loom](https://crates.io/crates/loom)
+under `--cfg loom`: the `parking_lot::RwLock` is swapped for `loom::sync::RwLock`
+and `tests/loom.rs` proves, across all bounded interleavings, that concurrent
+failure recording never loses updates (exactly one trip at threshold) and that
+`trip()` racing `record_success()` yields a serialized, consistent final state.
+
+```sh
+RUSTFLAGS="--cfg loom" cargo test --release --test loom
+```
+
+What loom does not cover: the async `call()` path's check-then-await-then-record
+window — recording results as operations complete is the documented
+total-ordering design, and tokio/loom cannot model the await point.
