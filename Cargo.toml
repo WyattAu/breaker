@@ -28,9 +28,14 @@ std = []
 metrics = ["dep:metrics"]
 tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
 
+[[bench]]
+name = "call_overhead"
+harness = false
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 proptest = "1"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 # Model-checking tests (see tests/loom.rs). Activated only with
 # RUSTFLAGS="--cfg loom"; the lib swaps parking_lot::RwLock for loom's.

@@ -107,3 +107,7 @@ total-ordering design, and tokio/loom cannot model the await point.
 ## Security
 
 Threat model: [THREAT-MODEL.md](THREAT-MODEL.md).
+
+## Performance
+
+Measured hot-path SLOs and allocation profile: [PERF-SLO.md](PERF-SLO.md). Benchmarks run in CI (non-gating regression visibility against the saved `ci` baseline).
