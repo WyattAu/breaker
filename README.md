@@ -103,3 +103,7 @@ RUSTFLAGS="--cfg loom" cargo test --release --test loom
 What loom does not cover: the async `call()` path's check-then-await-then-record
 window — recording results as operations complete is the documented
 total-ordering design, and tokio/loom cannot model the await point.
+
+## Security
+
+Threat model: [THREAT-MODEL.md](THREAT-MODEL.md).
