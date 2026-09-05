@@ -5,7 +5,7 @@
 //! `read`/`write` return `Result` like `std`. This wrapper normalizes both to
 //! the parking_lot shape so the state machine call sites stay unchanged.
 
-#[cfg(not(loom))]
+#[cfg(all(not(loom), not(kani)))]
 pub(crate) use parking_lot::RwLock;
 
 #[cfg(loom)]
@@ -20,6 +20,35 @@ mod loom_lock {
     impl<T> RwLock<T> {
         pub(crate) fn new(value: T) -> Self {
             Self(LoomRwLock::new(value))
+        }
+
+        pub(crate) fn read(&self) -> RwLockReadGuard<'_, T> {
+            self.0.read().expect("rwlock read poisoned")
+        }
+
+        pub(crate) fn write(&self) -> RwLockWriteGuard<'_, T> {
+            self.0.write().expect("rwlock write poisoned")
+        }
+    }
+}
+
+// Under cfg(kani) — see src/kani.rs — the lock is swapped for std's: Kani
+// models std sync primitives natively, while parking_lot's futex/spin
+// internals explode symbolic execution (observed: >15 GB RSS, no SAT
+// result even on a 3-step harness). Same guard-shape normalization as the
+// loom swap above; never active together with cfg(loom).
+#[cfg(kani)]
+pub(crate) use kani_lock::RwLock;
+
+#[cfg(kani)]
+mod kani_lock {
+    use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
+
+    pub(crate) struct RwLock<T>(StdRwLock<T>);
+
+    impl<T> RwLock<T> {
+        pub(crate) fn new(value: T) -> Self {
+            Self(StdRwLock::new(value))
         }
 
         pub(crate) fn read(&self) -> RwLockReadGuard<'_, T> {
