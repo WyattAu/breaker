@@ -5,6 +5,19 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-05
+
+### Added
+
+- API declared stable; semver contract enforced via cargo-semver-checks CI gate.
+- Three-state circuit breaker (Closed → Open → HalfOpen) with failure
+  threshold, sliding window, wait duration, and half-open success threshold.
+- Builder with `.standard()` / `.fast_fail()` / `.lenient()` presets,
+  per-call metrics, and state-change hook.
+- `metrics` feature flag; optional Tower layer for Axum/Tonic integration.
+- Loom model-checking of concurrency and Kani proofs of state-machine
+  invariants.
+
 ## [0.3.0] - 2026-09-03
 
 ### Changed
