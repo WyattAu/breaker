@@ -46,3 +46,37 @@ operation's `Err` branch, not on circuit transitions).
 - Local baseline: `cargo bench --bench call_overhead -- --save-baseline main`,
   compare with `cargo bench --bench call_overhead -- --baseline main`.
 - Alert threshold: >2× mean regression on `call_allowed/call_ok_1`.
+
+## Addendum (2026-09): deterministic CI gate via iai-callgrind
+
+Criterion measures wall-clock time and cannot pass/fail a PR on a busy
+runner. The gating signal is now **instruction counts** from
+iai-callgrind (`benches/iai_hot_path.rs`), which are deterministic for a
+given binary:
+
+- `iai_hot_path/call_allowed` — steady-state closed-circuit `call`
+  (read-lock state check + write-lock success record).
+- `iai_hot_path/call_rejected` — open-circuit short-circuit `call`.
+
+Split of responsibilities: **iai-callgrind is the CI gate**
+(`perf-gate` job, PR compares against the cached `main` baseline with
+`--fail-fast`); **criterion remains the human-readable trend** and the
+source of the SLO wall-clock numbers above (its saved `ci` baseline stays
+non-gating).
+
+Baseline workflow: every push to main re-saves the `main` baseline
+(`cargo bench --bench iai_hot_path -- --save-baseline=main`) and caches it
+in `target/iai`; PRs run `cargo bench --bench iai_hot_path --
+--baseline=main --fail-fast`. Baseline updates are **intentional**: after
+merging a deliberate perf change, the next main push refreshes the
+reference.
+
+Local runs: this gate needs `valgrind` (not installed on the primary dev
+machine, no passwordless sudo — CI-only until then). Without valgrind,
+compile-check with `cargo bench --no-run --bench iai_hot_path` (verified:
+compiles clean, harness wires to `iai-callgrind-runner` 0.16.1 and fails
+exactly at the valgrind lookup). Tooling note: iai-callgrind 0.16.1 is the
+final release under that name; the project continues as `gungraun` (API
+compatible, renamed). Benchmarks run through plain
+`cargo bench` + `iai-callgrind-runner` in PATH — there is no
+`cargo iai-callgrind` subcommand in this version line.

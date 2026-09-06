@@ -32,10 +32,17 @@ tower = ["dep:tower", "dep:tower-layer", "dep:http", "dep:axum"]
 name = "call_overhead"
 harness = false
 
+# Deterministic CI perf gate (instruction counts under valgrind). Not run
+# locally unless valgrind is installed; see benches/iai_hot_path.rs.
+[[bench]]
+name = "iai_hot_path"
+harness = false
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
+iai-callgrind = "0.16"
 
 # Model-checking tests (see tests/loom.rs). Activated only with
 # RUSTFLAGS="--cfg loom"; the lib swaps parking_lot::RwLock for loom's.

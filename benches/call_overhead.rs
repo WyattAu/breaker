@@ -66,9 +66,8 @@ fn bench_call_rejected(c: &mut Criterion) {
                 rt.block_on(async {
                     for _ in 0..iters {
                         for _ in 0..n {
-                            let _ = black_box(
-                                brk.call(|| async { Ok::<u8, Infallible>(0u8) }).await,
-                            );
+                            let _ =
+                                black_box(brk.call(|| async { Ok::<u8, Infallible>(0u8) }).await);
                         }
                     }
                 });
