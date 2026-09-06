@@ -1,0 +1,6 @@
+# src/lock.rs is entirely `#[cfg(loom)]`/`#[cfg(kani)]` — neither cfg is ever
+# activated by a cargo feature, so mutants there are not compiled (and cannot
+# be killed) by the host `--all-features` suite cargo-mutants runs. The shim is
+# verified by its own harnesses: `RUSTFLAGS="--cfg loom" cargo test` (see
+# tests/loom.rs) and `cargo kani` (see src/kani.rs).
+exclude_globs = ["src/lock.rs"]

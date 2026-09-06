@@ -715,4 +715,91 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
         assert!(cb.is_closed());
     }
+
+    // --- Mutation-killing test (cargo-mutants triage) ---
+
+    /// The `failure_count` histogram must carry the real consecutive-failure
+    /// count. Kills the `StateMachine::failure_count() -> 0` and `-> 1`
+    /// replacement mutants, which survive every state-based assertion
+    /// (thresholds are checked on the internal field, not the getter).
+    #[cfg(feature = "metrics")]
+    #[test]
+    fn failure_count_histogram_records_consecutive_failures() {
+        mod capture {
+            use ::metrics::{
+                Counter, Gauge, Histogram, HistogramFn, Key, KeyName, Metadata, Recorder,
+                SharedString, Unit,
+            };
+            use std::sync::{Arc, Mutex};
+
+            #[derive(Clone, Default)]
+            pub struct HistogramCapture(Arc<Mutex<Vec<f64>>>);
+
+            impl HistogramCapture {
+                pub fn values(&self) -> Vec<f64> {
+                    self.0
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .clone()
+                }
+            }
+
+            struct Capturing(HistogramCapture);
+
+            impl HistogramFn for Capturing {
+                fn record(&self, value: f64) {
+                    self.0
+                        .0
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .push(value);
+                }
+            }
+
+            impl Recorder for HistogramCapture {
+                fn describe_counter(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+                fn describe_gauge(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+                fn describe_histogram(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+                fn register_counter(&self, _: &Key, _: &Metadata<'_>) -> Counter {
+                    Counter::noop()
+                }
+                fn register_gauge(&self, _: &Key, _: &Metadata<'_>) -> Gauge {
+                    Gauge::noop()
+                }
+                fn register_histogram(&self, key: &Key, _: &Metadata<'_>) -> Histogram {
+                    if key.name() == "circuit_breaker_failure_count" {
+                        Histogram::from_arc(Arc::new(Capturing(self.clone())))
+                    } else {
+                        Histogram::noop()
+                    }
+                }
+            }
+        }
+
+        use capture::HistogramCapture;
+        use ::metrics::with_local_recorder;
+
+        let config = CircuitBreakerConfig::builder()
+            .failure_rate_threshold(5)
+            .sliding_window_size(10)
+            .wait_duration(std::time::Duration::from_secs(60))
+            .build();
+        let cb = CircuitBreaker::new(config);
+        let recorder = HistogramCapture::default();
+
+        // The local recorder is thread-local, so the future must be driven on
+        // this thread: a current-thread runtime under the recorder scope.
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("test runtime");
+        with_local_recorder(&recorder, || {
+            rt.block_on(async {
+                let _ = cb.call(|| async { Err::<(), _>("boom") }).await;
+                let _ = cb.call(|| async { Err::<(), _>("boom") }).await;
+            });
+        });
+
+        assert_eq!(recorder.values(), vec![1.0, 2.0]);
+    }
 }

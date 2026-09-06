@@ -1,0 +1,3 @@
+# Equivalent mutants found by cargo-mutants triage (2026-09-06).
+# One mutant per line: "<file>:<line> — rationale".
+src/config.rs:51 — builder() is defined as `CircuitBreakerConfigBuilder::default()`; replacing the body with `Default::default()` computes the identical value via the same Default impl (type-inferred to CircuitBreakerConfigBuilder). Observable behavior is bit-identical by construction.
