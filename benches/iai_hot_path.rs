@@ -16,13 +16,33 @@
 //! Criterion stays the source of the wall-clock trend; this file is the
 //! pass/fail gate.
 
-use breaker::CircuitBreaker;
+use breaker::{CircuitBreaker, CircuitBreakerConfig};
 use iai_callgrind::{library_benchmark, library_benchmark_group, main};
 
+type Rt = tokio::runtime::Runtime;
+
+fn setup_call() -> (Rt, CircuitBreaker) {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    let cb = CircuitBreaker::new(CircuitBreakerConfig::standard());
+    // Warm one call so the measured call is the steady-state allowed path.
+    rt.block_on(cb.call(|| async { Ok::<(), std::convert::Infallible>(()) }))
+        .ok();
+    (rt, cb)
+}
+
+// Steady-state allowed call: state check under lock + success record, no
+// transition — the path real traffic hits.
 #[library_benchmark]
-fn call_allowed() {
-    let cb = CircuitBreaker::builder().build();
-    let _ = cb.call(|| Ok::<(), std::convert::Infallible>(()));
+#[bench::steady_state(setup = setup_call)]
+fn call_allowed(env: (Rt, CircuitBreaker)) -> bool {
+    let (rt, cb) = env;
+    rt.block_on(async {
+        cb.call(|| async { Ok::<(), std::convert::Infallible>(()) })
+            .await
+            .is_ok()
+    })
 }
 
 library_benchmark_group!(name = iai_hot_path; benchmarks = call_allowed);
