@@ -776,8 +776,8 @@ mod tests {
             }
         }
 
-        use capture::HistogramCapture;
         use ::metrics::with_local_recorder;
+        use capture::HistogramCapture;
 
         let config = CircuitBreakerConfig::builder()
             .failure_rate_threshold(5)
