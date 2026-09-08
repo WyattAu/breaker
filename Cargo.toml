@@ -38,11 +38,17 @@ harness = false
 name = "iai_hot_path"
 harness = false
 
+[[bench]]
+name = "head_to_head"
+harness = false
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 iai-callgrind = "0.16"
+# Competitor for benches/head_to_head.rs (async circuit breaker).
+failsafe = "1.3"
 
 # Model-checking tests (see tests/loom.rs). Activated only with
 # RUSTFLAGS="--cfg loom"; the lib swaps parking_lot::RwLock for loom's.
