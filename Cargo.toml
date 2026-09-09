@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/WyattAu/breaker"
 keywords = ["circuit-breaker", "resilience", "fault-tolerance"]
 categories = ["rust-patterns"]
+exclude = ["/target"]
 
 [dependencies]
 tokio = { version = "1", features = ["time", "sync"] }
