@@ -3,9 +3,18 @@
 Async circuit breaker for Rust — state machine with configurable thresholds,
 metrics, and optional [Tower](https://docs.rs/tower) layer integration.
 
+[![docs.rs](https://docs.rs/breaker/badge.svg)](https://docs.rs/breaker)
 [![CI](https://github.com/WyattAu/breaker/actions/workflows/ci.yml/badge.svg)](https://github.com/WyattAu/breaker/actions)
 [![crates.io](https://img.shields.io/crates/v/breaker)](https://crates.io/crates/breaker)
 [![license](https://img.shields.io/crates/l/breaker)](LICENSE-MIT)
+
+## Feature Flags
+
+| Feature | Default | Description |
+|---|---|---|
+| `std` | ✅ | Standard-library support. |
+| `metrics` | — | Emit `circuit_breaker_*` counters via the [`metrics`](https://docs.rs/metrics) facade (successes, failures, transitions, trips). |
+| `tower` | — | Pulls in `tower`/`tower-layer`/`axum` for the Tower layer integration. |
 
 ## Features
 
@@ -111,5 +120,12 @@ Threat model: [THREAT-MODEL.md](THREAT-MODEL.md).
 ## Performance
 
 Measured hot-path SLOs and allocation profile: [PERF-SLO.md](PERF-SLO.md). Benchmarks run in CI (non-gating regression visibility against the saved `ci` baseline).
+
+| Hot path (criterion mean, 2026-09, 6-core x86_64) | P50 | SLO |
+|---|---|---|
+| `call` allowed (closed circuit) | **37 ns** | < 50 ns |
+| `call` rejected (open circuit, short-circuit) | 46 ns | < 60 ns, no user future polled |
+
+Allocation profile: ~0 allocations per allowed call, exactly 0 per rejected call (verified with a counting `GlobalAlloc`). The CI perf gate is the deterministic iai-callgrind instruction count (`perf-gate` job).
 
 Head-to-head numbers against failsafe (the leading dedicated circuit-breaker crate), with an honest feature comparison: [COMPARISON.md](COMPARISON.md).
