@@ -11,7 +11,10 @@ pub(crate) use parking_lot::RwLock;
 #[cfg(loom)]
 pub(crate) use loom_lock::RwLock;
 
+// Harness-only module (loom model checking): `expect` documents the
+// poisoning invariant the model is proving; never compiled for release.
 #[cfg(loom)]
+#[allow(clippy::expect_used)]
 mod loom_lock {
     use loom::sync::{RwLock as LoomRwLock, RwLockReadGuard, RwLockWriteGuard};
 
@@ -40,7 +43,10 @@ mod loom_lock {
 #[cfg(kani)]
 pub(crate) use kani_lock::RwLock;
 
+// Harness-only module (Kani symbolic execution): `expect` documents the
+// poisoning invariant; never compiled for release.
 #[cfg(kani)]
+#[allow(clippy::expect_used)]
 mod kani_lock {
     use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
 
