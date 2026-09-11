@@ -29,10 +29,12 @@ use loom::thread;
 use std::time::Duration;
 
 /// Config with a huge wait duration so the Open -> HalfOpen timer never
-/// fires during a model (keeps the models deterministic).
+/// fires during a model (keeps the models deterministic), and the window
+/// rate disabled so only the consecutive-failure rule drives tripping.
 fn deterministic_config(failure_threshold: u32) -> CircuitBreakerConfig {
     CircuitBreakerConfig::builder()
-        .failure_rate_threshold(failure_threshold)
+        .consecutive_failures(failure_threshold)
+        .failure_rate_threshold(0.0)
         .wait_duration(Duration::from_secs(3600))
         .build()
 }

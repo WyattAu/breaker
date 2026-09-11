@@ -47,31 +47,36 @@ Reading the numbers honestly:
 
 ## Feature matrix
 
-|                                   | breaker 1.0                       | failsafe 1.3                          |
+|                                   | breaker 2.0                       | failsafe 1.3                          |
 |-----------------------------------|-----------------------------------|---------------------------------------|
 | Async `call()`                    | Yes (closure -> future)           | Yes (future value, `futures-support`) |
 | Sync `call()`                     | No (async only)                   | Yes (`FnMut -> Result`)               |
 | State machine                     | closed/open/half-open             | closed/open/half-open                 |
-| Failure accrual                   | Sliding window + failure-rate threshold | Consecutive failures, EWMA success-rate window, `OrElse` combinator |
-| Open-duration strategy            | Fixed `wait_duration`             | Pluggable backoff (policy-driven)     |
-| Error classification              | No (every `Err` counts)           | Yes (`FailurePredicate`)              |
+| Failure accrual                   | Sliding window + failure-rate threshold **and** consecutive-failure streak (whichever first) | Consecutive failures, EWMA success-rate window, `OrElse` combinator |
+| Open-duration strategy            | Fixed / exponential / exponential-with-jitter backoff (per-trip attempt counter) | Pluggable backoff (policy-driven)     |
+| Error classification              | Yes (`failure_predicate` — non-failures pass through typed) | Yes (`FailurePredicate`)              |
+| Typed errors                      | Yes (`CircuitBreakerError<E>` preserves the original error) | No (maps to its own error type)       |
 | State-change hooks                | Yes (`on_state_change` callback)  | Yes (`Instrument` trait)              |
 | Presets                           | Yes (`.standard()/.fast_fail()/.lenient()`) | No                          |
-| Metrics snapshot                  | Yes (`CircuitMetrics`, `metrics` feature) | No                            |
-| Tower layer                       | Optional built-in                 | No                                    |
-| Half-open probe budget            | Yes (`half_open_max_calls`, `success_threshold`) | Policy-internal        |
+| Metrics snapshot                  | Yes (`CircuitMetrics` + window rate, `metrics` feature) | No                    |
+| Tower layer                       | Optional built-in (`BreakerLayer`, real) | No                             |
+| Half-open probe budget            | Yes — bounded concurrent probes with lock-free permits (`half_open_max_calls`, `success_threshold`) | Policy-internal        |
+| Per-call timeout                  | Yes (`timeout` feature)           | No                                    |
 | Model checking / verification     | Yes (loom: `tests/loom.rs`; Kani: `tests/kani.rs`) | No                  |
-| Overhead measured here            | ~71 ns/call                       | ~133 ns/call                          |
+| Overhead measured here            | ~71 ns/call (1.0 measurement; 2.0 re-measured at parity, see PERF-SLO.md) | ~133 ns/call       |
 
 ## Positioning
 
-failsafe is the better choice when you need a sync-callable breaker,
-policy-driven open/backoff durations, EWMA-based failure detection, or error
-classification via predicates — it is the more configurable policy engine.
+failsafe is the better choice when you need a sync-callable breaker or an
+`OrElse` policy-combinator engine — it remains the more configurable policy
+engine. breaker now covers the rest of that gap itself: window-based
+tripping, exponential/jitter backoff, error-classification predicates, and
+per-call timeouts are all built in as of 2.0.0.
 
 breaker is the better choice when you live in async/tokio (faster allowed
 path, closure-based call), want batteries included — presets, metrics
-snapshots, a Tower layer, half-open probe budgeting — or care about
+snapshots, a real Tower layer, bounded half-open probing, backoff
+strategies, typed error passthrough — or care about
 model-checked concurrency (loom) and proof-checked state transitions
 (Kani).
 

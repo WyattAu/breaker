@@ -1,10 +1,10 @@
 [package]
 name = "breaker"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
-description = "Async circuit breaker for Rust — state machine with configurable thresholds, metrics, and Tower layer integration"
+description = "Async circuit breaker for Rust — sliding-window tripping, half-open probe permits, backoff strategies, typed errors, and a real Tower layer"
 readme = "README.md"
 repository = "https://github.com/WyattAu/breaker"
 keywords = ["circuit-breaker", "resilience", "fault-tolerance"]
@@ -12,17 +12,29 @@ categories = ["rust-patterns"]
 exclude = ["/target"]
 
 [dependencies]
-tokio = { version = "1", features = ["time", "sync"] }
 parking_lot = "0.12"
 thiserror = "2"
 metrics = { version = "0.24", optional = true }
+# Only pulled in when the `timeout` feature is enabled; the core crate has
+# no mandatory async-runtime dependency.
+tokio = { version = "1", default-features = false, features = ["time"], optional = true }
+# Real Tower integration (`tower` feature): Service + Layer + types.
+tower = { version = "0.5", default-features = false, optional = true }
+tower-layer = { version = "0.3", default-features = false, optional = true }
 
 
 [features]
 default = ["std"]
 std = []
 metrics = ["dep:metrics"]
-tower = []
+# Real Tower middleware: `BreakerLayer`/`BreakerService` wrapping any
+# `tower::Service`. Compatible with Axum/Tonic routers via `tower_layer`.
+# `tower/util` is included so layer users get `ServiceExt` (`ready`,
+# `oneshot`) and `service_fn` — the standard middleware toolkit.
+tower = ["dep:tower", "dep:tower-layer", "tower/util"]
+# Optional per-call timeout via `tokio::time::timeout`. Timed-out calls
+# count as failures and surface as `CircuitBreakerError::Timeout`.
+timeout = ["dep:tokio"]
 
 [[bench]]
 name = "call_overhead"

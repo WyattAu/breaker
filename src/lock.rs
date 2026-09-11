@@ -11,6 +11,16 @@ pub(crate) use parking_lot::RwLock;
 #[cfg(loom)]
 pub(crate) use loom_lock::RwLock;
 
+// The half-open probe-permit counter (src/lib.rs) is shared across threads
+// and mutated without the state lock, so it must be a modelable atomic:
+// std's AtomicUsize under loom would introduce unmodeled nondeterminism.
+// Both flavors expose the same load/store/compare_exchange/fetch_sub API
+// with their own `Ordering` type, imported from the same branch below.
+#[cfg(loom)]
+pub(crate) use loom::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(not(loom))]
+pub(crate) use std::sync::atomic::{AtomicUsize, Ordering};
+
 // Harness-only module (loom model checking): `expect` documents the
 // poisoning invariant the model is proving; never compiled for release.
 #[cfg(loom)]

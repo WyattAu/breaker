@@ -1,4 +1,8 @@
 
 # cargo-vet audits file
 
-[audits]
+[[audits.breaker]]
+who = "Wyatt Au <wyatt@wyattau.dev>"
+criteria = "safe-to-deploy"
+version = "2.0.0"
+notes = "Own crate, version 2.0.0 release. Full suite: 104 tests across all feature combinations, loom model-checks, clippy -D warnings, docs clean."

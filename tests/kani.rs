@@ -8,15 +8,20 @@
 //!
 //! 1. `state ∈ {Closed, Open, HalfOpen}` always — the state machine never
 //!    leaves the documented state space, no matter the op sequence.
-//! 2. If the circuit is `Open`, then at least `failure_rate_threshold`
+//! 2. If the circuit is `Open`, then at least `consecutive_failures`
 //!    failures have been recorded in total. Justification: a `Closed → Open`
-//!    trip requires exactly `threshold` consecutive failures (each of which
-//!    is also a total failure), and a `HalfOpen → Open` re-trip can only
-//!    increase `total_failures`. So `total_failures >= threshold` covers both
-//!    disjuncts of "tripped at threshold OR re-opened via the half-open
-//!    path". (`failures_at_open` itself is the internal consecutive counter,
-//!    which the trip transition resets to 0 — it is not observable through
-//!    the public API, hence the `total_failures` proxy.)
+//!    trip requires exactly `consecutive_failures` consecutive failures
+//!    (each of which is also a total failure), and a `HalfOpen → Open`
+//!    re-trip can only increase `total_failures`. So `total_failures >=
+//!    consecutive_failures` covers both disjuncts of "tripped at threshold
+//!    OR re-opened via the half-open path". (This requires the
+//!    sliding-window rate rule to be disabled in the harness config —
+//!    `failure_rate_threshold(0.0)` — otherwise an early rate trip with
+//!    fewer total failures than the streak threshold would legitimately
+//!    falsify the proxy invariant.) (`failure_count` itself is the internal
+//!    consecutive counter, which the trip transition resets to 0 — it is
+//!    not observable through the public API, hence the `total_failures`
+//!    proxy.)
 //!
 //! # Time is frozen
 //!
@@ -81,18 +86,25 @@ fn step_ok(cb: &CircuitBreaker, fail: bool, threshold: u32) -> bool {
         && (m.state != State::Open || m.total_failures >= threshold as u64)
 }
 
+/// Streak-only trip config: the sliding-window rate rule is disabled so the
+/// `Open ⇒ total_failures >= consecutive_failures` invariant has exactly one
+/// trip path (see the module docs).
+fn streak_config(streak: u32, wait: std::time::Duration) -> CircuitBreakerConfig {
+    CircuitBreakerConfig::builder()
+        .consecutive_failures(streak)
+        .failure_rate_threshold(0.0)
+        .wait_duration(wait)
+        .build()
+}
+
 /// Arbitrary success/failure sequences (3 bounded steps) against a breaker
-/// with `threshold = 2` and a long wait: checks the state-space invariant
-/// and the trip-at-threshold invariant after every step.
+/// with `consecutive_failures = 2` and a long wait: checks the state-space
+/// invariant and the trip-at-threshold invariant after every step.
 #[kani::proof]
 #[kani::unwind(15)]
 #[kani::stub(std::time::Instant::now, frozen_now)]
 fn kani_breaker_invariants_under_arbitrary_sequences() {
-    let config = CircuitBreakerConfig::builder()
-        .failure_rate_threshold(2)
-        .success_threshold(2)
-        .wait_duration(std::time::Duration::from_secs(3600))
-        .build();
+    let config = streak_config(2, std::time::Duration::from_secs(3600));
     let cb = CircuitBreaker::new(config);
 
     let mut ok = true;
@@ -114,11 +126,7 @@ fn kani_breaker_invariants_under_arbitrary_sequences() {
 #[kani::unwind(15)]
 #[kani::stub(std::time::Instant::now, frozen_now)]
 fn kani_breaker_half_open_path_invariants() {
-    let config = CircuitBreakerConfig::builder()
-        .failure_rate_threshold(1)
-        .success_threshold(1)
-        .wait_duration(std::time::Duration::from_secs(0))
-        .build();
+    let config = streak_config(1, std::time::Duration::from_secs(0));
     let cb = CircuitBreaker::new(config);
 
     let mut ok = true;

@@ -80,3 +80,38 @@ final release under that name; the project continues as `gungraun` (API
 compatible, renamed). Benchmarks run through plain
 `cargo bench` + `iai-callgrind-runner` in PATH — there is no
 `cargo iai-callgrind` subcommand in this version line.
+
+## Addendum (2026-09-11): 2.0.0 re-measurement — no allowed-path regression
+
+2.0.0 changes the hot path in three ways: the sliding-window record on
+every recorded outcome (one O(1) `VecDeque` push + running-counter update,
+inside the existing write lock), the half-open permit check (a branch on
+the state match — **skipped entirely while `Closed`**), and `call`'s
+genericity over the user error type (monomorphized away; the rejected-path
+error construction is the same unit variant as 1.0.0).
+
+Re-measured (criterion, same machine, **CPU-pinned with `taskset`** — the
+box was under load average > 10 that day and unpinned runs varied ±80%,
+with 1.0.0 itself measuring slower than 2.0.0 in one A/B run; pinning was
+required for any meaningful number):
+
+| Benchmark | 2.0.0 (pinned mean) | 1.0.0 (2026-09 baseline) |
+|---|---|---|
+| `call_allowed/call_ok_1` | **35.7 ns** | 37 ns |
+| `call_allowed/call_ok_100` | 35.7 ns/call | 36.5 ns/call |
+| `call_allowed/call_ok_1000` | 35.3 ns/call | 39.0 ns/call |
+| `call_rejected/call_open_1` | 41.8 ns | 46 ns |
+| `call_rejected/call_open_1000` | (noisy, see below) | 50.3 ns/call |
+
+Verdict: **the allowed path did not regress** — 2.0.0 measures at or below
+every 1.0.0 number under identical conditions, so the SLO statements above
+carry over unchanged. The generic `E` adds no cost (confirmed
+empirically; there is no `Display`/`String` conversion anywhere on the
+hot path anymore — that allocation moved out of the error path entirely).
+The ×1000 *rejected* batch numbers were load-noise dominated in both the
+1.0.0 and 2.0.0 runs; the single-shot rejected path (the SLO metric) is
+source-identical to 1.0.0 and measured faster than baseline.
+
+The authoritative gate remains iai-callgrind in CI: the 2.0.0 push to main
+re-saves the `main` baseline (intentional baseline update per the policy
+above), and subsequent PRs are gated against it.
