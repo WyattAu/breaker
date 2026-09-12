@@ -5,6 +5,21 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-13
+
+### Added
+
+- `tests/config_matrix.rs` — per-knob behavior matrix for every 2.0.0
+  knob: `failure_rate_threshold` 0.0/1.0 contrast, `consecutive_failures`
+  streak reset, `sliding_window_size` sample-bounding (the historic
+  dead-knob incident, now provably wired), `minimum_calls` early-warning,
+  `success_threshold` probe counting, `BackoffStrategy`
+  Fixed/Exponential/ExponentialJitter sequence bounds, `wait_duration`
+  alias equivalence, `failure_predicate` true/false counting, and
+  `call_timeout` firing + failure accounting (`timeout` feature).
+  `half_open_max_calls` permit exhaustion → `Rejected` remains proven in
+  `tests/integration.rs` and `tests/tower.rs` (cited from the matrix).
+
 ## [2.0.0] - 2026-09-11
 
 Integrity release: every feature advertised on the 1.0.0 tin now exists,
