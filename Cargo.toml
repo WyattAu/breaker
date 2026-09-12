@@ -53,7 +53,7 @@ harness = false
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 proptest = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 iai-callgrind = "0.16"
 # Competitor for benches/head_to_head.rs (async circuit breaker).
 failsafe = "1.3"
