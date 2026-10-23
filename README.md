@@ -1,4 +1,5 @@
 # breaker
+[![Estate integration](https://github.com/WyattAu/estate-integration/actions/workflows/ci.yml/badge.svg)](https://github.com/WyattAu/estate-integration/actions/workflows/ci.yml)
 
 Async circuit breaker for Rust — sliding-window failure-rate tripping,
 half-open probe permits (stampede protection), backoff strategies, typed
