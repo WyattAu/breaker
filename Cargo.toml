@@ -1,10 +1,10 @@
 [package]
 name = "breaker"
-version = "2.0.1"
+version = "2.0.2"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
-description = "Async circuit breaker for Rust — sliding-window tripping, half-open probe permits, backoff strategies, typed errors, and a real Tower layer"
+description = "Async circuit breaker for Rust: sliding-window failure-rate tripping,"
 readme = "README.md"
 repository = "https://github.com/WyattAu/breaker"
 keywords = ["circuit-breaker", "resilience", "fault-tolerance"]
