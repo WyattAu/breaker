@@ -214,6 +214,21 @@ impl CircuitBreaker {
         matches!(self.state(), State::HalfOpen)
     }
 
+    /// Admission check in the crawler style: `true` when the circuit reads
+    /// `Closed` or `HalfOpen` (including an `Open` circuit whose backoff
+    /// wait has elapsed, which reads as `HalfOpen`), `false` only while
+    /// `Open` and still within the wait.
+    pub fn is_allowed(&self) -> bool {
+        !matches!(self.state(), State::Open)
+    }
+
+    /// Consecutive failures recorded in the current `Closed` episode (reset
+    /// by any success and by every transition). Mirrors the per-domain
+    /// failure counter per-domain registries expose for diagnostics.
+    pub fn failure_count(&self) -> u32 {
+        self.inner.state.read().failure_count()
+    }
+
     /// Record a success manually, advancing the state machine.
     ///
     /// Use this to drive the circuit breaker without [`call`](Self::call).
