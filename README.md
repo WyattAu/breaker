@@ -234,3 +234,15 @@ The CI perf gate is the deterministic iai-callgrind instruction count
 (`perf-gate` job); the gate re-baselines on the 2.0.0 main push.
 
 Head-to-head numbers against failsafe (the leading dedicated circuit-breaker crate), with an honest feature comparison: [COMPARISON.md](COMPARISON.md).
+
+## Where the truth lives
+
+| Concern | File |
+|---|---|
+| State machine, tripping policy, usage (normative) | `README.md` |
+| Requirements REQ-BRK-001..026 + traceability | `REQUIREMENTS.md` |
+| Threat model | `THREAT-MODEL.md` |
+| Performance SLOs and benchmarks | `PERF-SLO.md` |
+| Head-to-head comparison with failsafe | `COMPARISON.md` |
+| Security policy | `SECURITY.md` |
+| Release history | `CHANGELOG.md` |

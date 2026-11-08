@@ -1,0 +1,17 @@
+# breaker
+
+> Async circuit breaker for Rust: three-state machine (Closed, Open, HalfOpen)
+> tripping on consecutive failures or sliding-window failure rate; half-open
+> probe permits for retry-stampede protection; fixed, exponential, and
+> jittered backoff; typed errors with a caller-supplied failure predicate; and
+> a real Tower layer. Model-checked with loom, proof-harnessed with kani.
+
+## Docs
+
+- [README.md](README.md): state machine, tripping policy, backoff strategies, presets, Tower integration, performance.
+- [REQUIREMENTS.md](REQUIREMENTS.md): numbered requirements REQ-BRK-001..026 with test traceability.
+- [THREAT-MODEL.md](THREAT-MODEL.md): threat model.
+- [PERF-SLO.md](PERF-SLO.md): performance SLOs and benchmark methodology.
+- [COMPARISON.md](COMPARISON.md): head-to-head comparison with failsafe.
+- [SECURITY.md](SECURITY.md): security policy.
+- [CHANGELOG.md](CHANGELOG.md): release history.
